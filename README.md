@@ -9,6 +9,7 @@ It can work with several ports simultaneously, get the new lines (separated by a
 
 #   Example of implementation
 ## Single port
+```C
 int main(){
     EU_init(&huart1);
     while(1){
@@ -20,7 +21,10 @@ int main(){
 	  }
     }
 }
+```
 
 ## Multi port
 
+```C
 //in future
+```
