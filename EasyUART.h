@@ -1,0 +1,37 @@
+/*
+ * EasyUART.h
+ *
+ *  Created on: Jun 17, 2022
+ *      Author: Santiago Cian, santiagocian97@gmail.com
+ *      		https://github.com/SantiagoCian1997/Easy_UART_STM32
+ */
+
+#include "stm32f1xx_hal.h"
+
+
+#define MULTI_PORT 0 			//0:false, 1:true
+#define N_MULTI_PORT 3			//numbers of ports implemented
+#define SIZE_BUFFERS 256		//size of all line
+#define BUFFER_LINES 8			//numbers of lines stored for each port
+
+struct port_str{
+	UART_HandleTypeDef *port;
+	uint8_t inChar;
+	uint8_t buffer[BUFFER_LINES][SIZE_BUFFERS];
+	uint16_t sizeLine[BUFFER_LINES];//tqamaño de cada linea
+	uint16_t NWordsInLine[BUFFER_LINES];//cantidad de palabras que contiene la linea
+	uint16_t initActualWordsInLine[BUFFER_LINES];//inicio de la palabra la ultima palabra que se leyo
+	uint16_t actualLine;//line en la que se esta escribiendo actualmente
+	uint16_t lastLine;//ultima linea solicitada por getLine
+	uint16_t indexBuffer;//elemento actual que se esta escribiendo
+	uint16_t lastWord;//almacena la ulitma palabra enviada
+};
+
+
+
+void EU_init(UART_HandleTypeDef *);
+uint8_t EU_lineAvailable();
+uint8_t * EU_getLine();
+uint16_t EU_getNWords();
+uint8_t * EU_getNextWord(uint16_t *);
+
