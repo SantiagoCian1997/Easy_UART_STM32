@@ -8,8 +8,6 @@
 #include "EasyUART.h"
 
 
-extern UART_HandleTypeDef huart1;//borrar
-
 
 #if MULTI_PORT
 	struct port_str ports[N_MULTI_PORT];
@@ -29,14 +27,11 @@ struct port_str * port_selected=ports;
  * 				hem
  */
 void EU_init(UART_HandleTypeDef *huart){
-
 	(*port_selected).port=huart;
 	HAL_UART_Receive_IT((*port_selected).port, &(*port_selected).inChar, 1);
 	(*port_selected).actualLine=0;
 	(*port_selected).lastLine=0;
 	(*port_selected).indexBuffer=0;
-
-
 }
 
 /* Description: Confirm if there is aline to read
@@ -60,19 +55,19 @@ uint8_t EU_lineAvailable(){
 /* Description: If exist line for read, return pointer of buffer and modifies the line of the buffer that is read
  *
  * Parameters:
- * 				none
+ * 				uint16_t *size: returns here the length of the line
  * Return:
- * 				uint8_t *: pointer of buffer
+ * 				uint8_t *: the pointer to init line
  * 				if no exist line return NULL=0;
  * Notes:
  *
  */
-uint8_t * EU_getLine(){
+uint8_t *EU_getLine(uint16_t *size){
 	if(EU_lineAvailable()){
-		uint8_t *ret;
-		ret=((*port_selected).buffer[(*port_selected).lastLine]);
+		(*size)=(*port_selected).sizeLine[(*port_selected).lastLine];
+		uint8_t *buff=((*port_selected).buffer[(*port_selected).lastLine]);
 		(*port_selected).lastLine=(*port_selected).actualLine;
-		return(ret);
+		return(buff);
 	}
 	return(0);
 }
@@ -104,22 +99,19 @@ uint16_t EU_getNWords(){
  * Parameters:
  * 				uint16_t *size: returns here the length of the word
  * Return:
- * 				uint16_t *: pointer to init word
+ * 				uint8_t *: the pointer to init word
  * Notes:
  *
  */
 uint8_t *EU_getNextWord(uint16_t *size){
 	uint16_t inicio=(*port_selected).initActualWordsInLine[(*port_selected).lastLine];
 	uint16_t fin=inicio;
-	while ((*port_selected).buffer[(*port_selected).lastLine][fin]>' ')fin++;;
-	//DEBUG
-	printf("inicio:%i, fin:%i\n",inicio,fin);
-	//
-
-	(*size)=fin-inicio;
+	while ((*port_selected).buffer[(*port_selected).lastLine][fin]>' ')fin++;
 	(*port_selected).initActualWordsInLine[(*port_selected).lastLine]=fin+1;
-	return (&(*port_selected).buffer[(*port_selected).lastLine][inicio]);
+	(*size)=fin-inicio;
+	return(&(*port_selected).buffer[(*port_selected).lastLine][inicio]);
 }
+
 
 /** HAL library, interruption for UART
  *
@@ -128,16 +120,16 @@ uint8_t *EU_getNextWord(uint16_t *size){
   *                the configuration information for the specified UART module.
   * @retval None
   */
+uint8_t i=0;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 #if MULTI_PORT
-	for(uint8_t i=0;i<N_MULTI_PORT;i++) if(huart==ports[i].huart) port_selected=&ports[i];
+	for(uint8_t i=0;i<N_MULTI_PORT;i++) if(huart==ports[i].port) port_selected=&ports[i];
+	//if(huart!=(*port_selected).port){
+	//	while(huart!=ports[i++].port) i%=N_MULTI_PORT;
+	//	port_selected=&ports[i];
+	//}
 #endif
 	if((*port_selected).inChar<' '){
-		//DEBUG
-		//printf("fin line\n");
-		//printf("Actual: %i, Size_line:%i\n",(*port_selected).actualLine,(*port_selected).indexBuffer);
-		//printf("String: %s\n",(*port_selected).buffer[(*port_selected).actualLine]);
-		//END eso
 		(*port_selected).sizeLine[(*port_selected).actualLine]=(*port_selected).indexBuffer;
 		(*port_selected).indexBuffer=0;
 		(*port_selected).actualLine++;
@@ -150,3 +142,91 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	}
 	HAL_UART_Receive_IT((*port_selected).port, &(*port_selected).inChar, 1);
 }
+
+
+
+
+//////////////////   MULTIPLES PUERTOS
+#if MULTI_PORT
+
+/* Description: Create interruption for listen each port
+ *
+ * Parameters:
+ * 				uint8_t p: number of port
+ * 				UART_HandleTypeDef *huart: struct of port UART (see HAL library)
+ * Return:
+ * 				none
+ * Notes:
+ * 				hem
+ */
+void EUM_init(uint8_t p ,UART_HandleTypeDef *huart){
+	port_selected=&ports[p%N_MULTI_PORT];
+	EU_init(huart);
+}
+
+/* Description: Confirm if there is aline to read
+ *
+ * Parameters:
+ * 				uint8_t p: number of port
+ * 				none
+ * Return:
+ * 				1: if exist a new line for read
+ * 				0: if don´t exist
+ * Notes:
+ *
+ */
+uint8_t EUM_lineAvailable(uint8_t p){
+	port_selected=&ports[p%N_MULTI_PORT];
+	return (EU_lineAvailable());
+}
+
+
+/* Description: If exist line for read, return pointer of buffer and modifies the line of the buffer that is read
+ *
+ * Parameters:
+ * 				uint8_t p: number of port
+ * 				uint16_t *size: returns here the length of the line
+ * Return:
+ * 				uint8_t *: the pointer to init line
+ * 				if no exist line return NULL=0;
+ * Notes:
+ *
+ */
+uint8_t *EUM_getLine(uint8_t p ,uint16_t *size){
+	port_selected=&ports[p%N_MULTI_PORT];
+	return(EU_getLine(size));
+}
+
+/* Description: Returns number of word existin in buffer line (last line)
+ *
+ * Parameters:
+ * 				uint8_t p: number of port
+ * 				none
+ * Return:
+ * 				uint16_t : number of word existin
+ * Notes:
+ *
+ */
+uint16_t EUM_getNWords(uint8_t p){
+	port_selected=&ports[p%N_MULTI_PORT];
+	return(EU_getNWords());
+}
+
+
+/* Description: Returns pointer to init word and length of this
+ *
+ * Parameters:
+ * 				uint8_t p: number of port
+ * 				uint16_t *size: returns here the length of the word
+ * Return:
+ * 				uint8_t *: the pointer to init word
+ * Notes:
+ *
+ */
+uint8_t *EUM_getNextWord(uint8_t p ,uint16_t *size){
+	port_selected=&ports[p%N_MULTI_PORT];
+	return(EU_getNextWord(size));
+}
+
+
+#endif

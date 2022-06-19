@@ -9,7 +9,7 @@
 #include "stm32f1xx_hal.h"
 
 
-#define MULTI_PORT 0 			//0:false, 1:true
+#define MULTI_PORT 1 			//0:false, 1:true
 #define N_MULTI_PORT 3			//numbers of ports implemented
 #define SIZE_BUFFERS 256		//size of all line
 #define BUFFER_LINES 8			//numbers of lines stored for each port
@@ -27,11 +27,16 @@ struct port_str{
 	uint16_t lastWord;//almacena la ulitma palabra enviada
 };
 
-
-
 void EU_init(UART_HandleTypeDef *);
 uint8_t EU_lineAvailable();
-uint8_t * EU_getLine();
+uint8_t *EU_getLine(uint16_t *);
 uint16_t EU_getNWords();
-uint8_t * EU_getNextWord(uint16_t *);
+uint8_t *EU_getNextWord(uint16_t *);
 
+#if MULTI_PORT
+void EUM_init(uint8_t ,UART_HandleTypeDef *);
+uint8_t EUM_lineAvailable(uint8_t);
+uint8_t *EUM_getLine(uint8_t ,uint16_t *);
+uint16_t EUM_getNWords(uint8_t);
+uint8_t *EUM_getNextWord(uint8_t ,uint16_t *);
+#endif
