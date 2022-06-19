@@ -17,6 +17,8 @@
 
 struct port_str * port_selected=ports;
 struct port_str * port_read=ports;
+struct port_str * port_write=ports;
+
 
 /* Description: Create interruption for listen each port
  *
@@ -121,21 +123,13 @@ uint8_t *EU_getNextWord(uint16_t *size){
   *                the configuration information for the specified UART module.
   * @retval None
   */
-uint8_t i=0;
+uint8_t index_port=0;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 #if MULTI_PORT
-	//for(i=0;i<N_MULTI_PORT;i++) if(huart==ports[i].port) port_read=&ports[i];
-
-	while(huart!=ports[i].port){
-		i++;
-		i%=N_MULTI_PORT;
+	if(huart!=(*port_read).port){
+		while(huart!=ports[index_port].port)	index_port=(index_port+1)%N_MULTI_PORT;
+		port_read=&ports[index_port];
 	}
-	port_read=&ports[i];
-
-	//if(huart!=(*port_read).port){
-	//	while(huart!=ports[i++].port) i%=N_MULTI_PORT;
-	//	port_read=&ports[i];
-	//}
 #endif
 	if((*port_read).inChar<' '){
 		(*port_read).sizeLine[(*port_read).actualLine]=(*port_read).indexBuffer;
@@ -153,7 +147,13 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 
 
 
-
+/* for printf function
+ *
+ */
+int __io_putchar(int ch){
+	HAL_UART_Transmit((*port_write).port, (uint8_t *)&ch, 1, 100);
+	return ch;
+}
 //////////////////   MULTIPLES PUERTOS
 #if MULTI_PORT
 
@@ -237,4 +237,192 @@ uint8_t *EUM_getNextWord(uint8_t p ,uint16_t *size){
 }
 
 
+/* Description: Selec port OUTPUT
+ *
+ * Parameters:
+ * 				uint8_t p: number of port
+ * Return:
+ * 				none
+ * Notes:
+ *
+ */
+void setOutPort(uint8_t p){
+	port_write=&ports[p%N_MULTI_PORT];
+}
 #endif
+
+
+
+/* Description: Converts a character array containing a decimal number to a 32-bit signed integer
+ *
+ * Parameters:
+ *				uint8_t *buffer: pointer to the beginning of the number
+ *				int16_t length: number of characters that contains the number
+ * Return:
+ *				int32_t
+ * Notes:
+ *			if you put length=0 it will convert the characters from the beginning to the first occurrence of an invalid character
+ */
+int32_t stringDecToInt(uint8_t *buffer,int16_t length){
+	uint16_t inicio=0;
+	int32_t ret=0;
+	while(thisCharIsANumberDECOrSignedOrPoint(buffer[inicio])==0 && buffer[inicio]>' ') inicio++;
+	uint8_t signo=0;
+	if(buffer[inicio]=='-'){
+		signo=1;
+		inicio++;
+	}
+	if(thisCharIsANumberDEC(buffer[inicio])==1){
+		if(length>0){ //busca hasta esta posicion
+			while(length>0){
+				length--;
+				if(thisCharIsANumberDEC(buffer[inicio])==1) {
+					ret*=10;
+					ret+=charToValue_DEC_HEX(buffer[inicio]);
+				}
+				else length=0;
+				inicio++;
+			}
+			if(signo) return(-ret);
+			else return(ret);
+		}else{	//busca hasta cualquier caracter que no sea numero DEC
+			while(thisCharIsANumberDEC(buffer[inicio])){
+				ret*=10;
+				ret+=charToValue_DEC_HEX(buffer[inicio]);
+				inicio++;
+			}
+			if(signo) return(-ret);
+			else return(ret);
+
+		}
+	}
+	return(0);
+}
+
+/* Description: Converts a character array containing a HEX number to a 64-bit unsigned integer
+ *
+ * Parameters:
+ *				uint8_t *buffer: pointer to the beginning of the number
+ *				int16_t length: number of characters that contains the number
+ * Return:
+ *				uint64_t
+ * Notes:
+ *			if you put length=0 it will convert the characters from the beginning to the first occurrence of an invalid character
+ */
+uint64_t stringHexToInt(uint8_t *buffer,int16_t length){
+	uint16_t inicio=0;
+	uint64_t ret=0;
+	while(thisCharIsANumberHEX(buffer[inicio])==0 && buffer[inicio]>' ') inicio++;
+	if(thisCharIsANumberHEX(buffer[inicio])==1){
+		if(length>0){ //busca hasta esta posicion
+			while(length>0){
+				length--;
+				if(thisCharIsANumberHEX(buffer[inicio])==1) {
+					ret = ret<<4;
+					ret += charToValue_DEC_HEX(buffer[inicio]);
+				}
+				else length=0;
+				inicio++;
+			}
+			return(ret);
+		}else{	//busca hasta cualquier caracter que no sea numero DEC
+			while(thisCharIsANumberHEX(buffer[inicio])){
+				ret = (ret<<4) | charToValue_DEC_HEX(buffer[inicio]);
+				inicio++;
+			}
+			return(ret);
+		}
+	}
+	return(0);
+}
+
+/* Description: Converts a character array containing a number whit decimal point to a double
+ *
+ * Parameters:
+ *				uint8_t *buffer: pointer to the beginning of the number
+ *				int16_t length: number of characters that contains the number
+ * Return:
+ *			double
+ * Notes:
+ *			if you put length=0 it will convert the characters from the beginning to the first occurrence of an invalid character
+ */
+double stringDecToDouble(uint8_t *buffer,int16_t length){
+	double ret=0;
+	uint8_t signo=0;
+	uint16_t inicio=0;
+	uint16_t N_decimal=0;
+	while(thisCharIsANumberDECOrSignedOrPoint(buffer[inicio])==0 && buffer[inicio]>' ') inicio++;
+	if(buffer[inicio]=='-'){
+		signo=1;
+		inicio++;
+	}
+	if(thisCharIsANumberDECOrSignedOrPoint(buffer[inicio])==1){
+		if(length>0){ //busca hasta esta posicion
+			while(length>0){
+				length--;
+				if(thisCharIsANumberDECOrSignedOrPoint(buffer[inicio])==1) {
+					if(buffer[inicio]=='.'){
+						N_decimal=1;
+						inicio++;
+					}
+					if(N_decimal>0){
+						N_decimal*=10;
+						ret+=((double)charToValue_DEC_HEX(buffer[inicio]))/((double)N_decimal);
+					}
+					else{
+						ret*=10;
+						ret+=(double)charToValue_DEC_HEX(buffer[inicio]);
+					}
+				}
+				else length=0;
+				inicio++;
+			}
+			if(signo) return(-ret);
+			else return(ret);
+		}else{	//busca hasta cualquier caracter que no sea numero DEC
+			while(thisCharIsANumberDECOrSignedOrPoint(buffer[inicio])==1) {
+				if(buffer[inicio]=='.'){
+					N_decimal=1;
+					inicio++;
+				}
+				if(N_decimal>0){
+					N_decimal*=10;
+					ret+=((double)charToValue_DEC_HEX(buffer[inicio]))/((double)N_decimal);
+				}
+				else{
+					ret*=10;
+					ret+=(double)charToValue_DEC_HEX(buffer[inicio]);
+				}
+				inicio++;
+			}
+			if(signo) return(-ret);
+			else return(ret);
+
+		}
+	}
+	return(0);
+}
+
+uint8_t thisCharIsANumberDEC(uint8_t val){
+	if(val>='0'&&val<='9') return(1);
+	return(0);
+}
+uint8_t thisCharIsANumberHEX(uint8_t val){
+	if(val>='0'&&val<='9') return(1);
+	if(val>='A'&&val<='F') return(1);
+	if(val>='a'&&val<='f') return(1);
+	return(0);
+}
+uint8_t thisCharIsANumberDECOrSignedOrPoint(uint8_t val){
+	if(val>='0'&&val<='9') return(1);
+	if(val=='-') return(1);
+	if(val=='.') return(1);
+	//if(val=='+') return(1);
+	return(0);
+}
+uint16_t charToValue_DEC_HEX(uint8_t val){
+	if(val>='0'&&val<='9') return(val-'0');
+	if(val>='A'&&val<='F') return(val-'A'+10);
+	if(val>='a'&&val<='f') return(val-'a'+10);
+	return(0);
+}

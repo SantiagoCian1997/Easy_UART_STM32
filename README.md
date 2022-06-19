@@ -10,15 +10,16 @@ It can work with several ports simultaneously, get the new lines (separated by a
 #   Example of implementation
 ## Single port
 ```C
+#include "EasyUART.h"
 int main(){
-    EU_init(&huart1);									//initialize port interrupt
+    EU_init(&huart1);	//initialize port interrupt
     while(1){
-	  if(EU_lineAvailable() == 1){        				//Return true if a newline is available
-		  uint8_t number_of_words = EU_getNWords(); 	//Returns the number of words that this line has
+	  if(EU_lineAvailable() == 1){	//Return true if a newline is available
+		  uint8_t number_of_words = EU_getNWords();	//Returns the number of words that this line has
 		  uint16_t size_w; 
 		  uint8_t *buffer_w = EU_getNextWord(&size_w);	//Returns the pointer to the start of the next word and the size of the word
 		  uint16_t size_l;
-		  uint8_t *buffer_l = EU_getLine(&size_l); 		//Return the pointer to the beginning of the last line (and update the line being worked on) and the size of the line
+		  uint8_t *buffer_l = EU_getLine(&size_l);	//Return the pointer to the beginning of the last line (and update the line being worked on) and the size of the line
 	  }
     }
 }
@@ -27,17 +28,18 @@ int main(){
 ## Multi port
 
 ```C
+#include "EasyUART.h"
 int main(){
-    EUM_init(0, &huart1);				//initialize port interrupt, n is the port number
+    EUM_init(0, &huart1);	//initialize port interrupt, n is the port number
     EUM_init(1, &huart2);
 	//... EUM_init(N, &huartN);
     while(1){
-	  if(EUM_lineAvailable(n) == 1){        //Return true if a newline is available, n is the port number
-		  uint8_t number_of_words = EUM_getNWords(n);    //Returns the number of words that this line has, n is the port number
+	  if(EUM_lineAvailable(n) == 1){	//Return true if a newline is available, n is the port number
+		  uint8_t number_of_words = EUM_getNWords(n);	//Returns the number of words that this line has, n is the port number
 		  uint16_t size_w; 
-		  uint8_t *buffer_w = EUM_getNextWord(n, &size_w);//Returns the pointer to the start of the next word and the size of the word, n is the port number
+		  uint8_t *buffer_w = EUM_getNextWord(n, &size_w);	//Returns the pointer to the start of the next word and the size of the word, n is the port number
 		  uint16_t size_l;
-		  uint8_t *buffer_l = EUM_getLine(n, &size_l); //Return the pointer to the beginning of the last line (and update the line being worked on) and the size of the line, n is the port number
+		  uint8_t *buffer_l = EUM_getLine(n, &size_l);	//Return the pointer to the beginning of the last line (and update the line being worked on) and the size of the line, n is the port number
 	  }
     }
 }
@@ -49,5 +51,11 @@ int main(){
 #define N_MULTI_PORT 3			//numbers of ports implemented
 #define SIZE_BUFFERS 256		//size of all line in buffers
 #define BUFFER_LINES 8			//numbers of lines stored for each port (circular buffer of the lines)
-
 ```
+# Utility functions
+```C
+int32_t stringDecToInt(uint8_t *buffer,int16_t length);//Converts the string to a signed integer (string expressed in decimal number with signed)
+int32_t stringHexToInt(uint8_t *buffer,int16_t length);//Converts the string to a signed integer (string expressed in HEX number with signed)
+double stringDecToDouble(uint8_t *buffer,int16_t length);//Converts the string to a signed integer (string expressed in decimal number with signed)
+```
+
