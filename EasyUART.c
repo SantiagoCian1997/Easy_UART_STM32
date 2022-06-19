@@ -16,6 +16,7 @@
 #endif
 
 struct port_str * port_selected=ports;
+struct port_str * port_read=ports;
 
 /* Description: Create interruption for listen each port
  *
@@ -123,24 +124,31 @@ uint8_t *EU_getNextWord(uint16_t *size){
 uint8_t i=0;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 #if MULTI_PORT
-	for(uint8_t i=0;i<N_MULTI_PORT;i++) if(huart==ports[i].port) port_selected=&ports[i];
-	//if(huart!=(*port_selected).port){
+	//for(i=0;i<N_MULTI_PORT;i++) if(huart==ports[i].port) port_read=&ports[i];
+
+	while(huart!=ports[i].port){
+		i++;
+		i%=N_MULTI_PORT;
+	}
+	port_read=&ports[i];
+
+	//if(huart!=(*port_read).port){
 	//	while(huart!=ports[i++].port) i%=N_MULTI_PORT;
-	//	port_selected=&ports[i];
+	//	port_read=&ports[i];
 	//}
 #endif
-	if((*port_selected).inChar<' '){
-		(*port_selected).sizeLine[(*port_selected).actualLine]=(*port_selected).indexBuffer;
-		(*port_selected).indexBuffer=0;
-		(*port_selected).actualLine++;
-		if((*port_selected).actualLine>=BUFFER_LINES)(*port_selected).actualLine=0;
+	if((*port_read).inChar<' '){
+		(*port_read).sizeLine[(*port_read).actualLine]=(*port_read).indexBuffer;
+		(*port_read).indexBuffer=0;
+		(*port_read).actualLine++;
+		if((*port_read).actualLine>=BUFFER_LINES)(*port_read).actualLine=0;
 	}else{
-		if((*port_selected).indexBuffer<SIZE_BUFFERS-1){
-			(*port_selected).buffer[(*port_selected).actualLine][(*port_selected).indexBuffer++]=(*port_selected).inChar;
-			(*port_selected).buffer[(*port_selected).actualLine][(*port_selected).indexBuffer]=0;
+		if((*port_read).indexBuffer<SIZE_BUFFERS-1){
+			(*port_read).buffer[(*port_read).actualLine][(*port_read).indexBuffer++]=(*port_read).inChar;
+			(*port_read).buffer[(*port_read).actualLine][(*port_read).indexBuffer]=0;
 		}
 	}
-	HAL_UART_Receive_IT((*port_selected).port, &(*port_selected).inChar, 1);
+	HAL_UART_Receive_IT((*port_read).port, &(*port_read).inChar, 1);
 }
 
 
