@@ -54,8 +54,8 @@ int main(){
 ```
 # Utility functions
 ```C
-int32_t stringDecToInt(uint8_t *buffer,int16_t length);//Converts the string to a signed integer (string expressed in decimal number with signed)
-int32_t stringHexToInt(uint8_t *buffer,int16_t length);//Converts the string to a signed integer (string expressed in HEX number with signed)
-double stringDecToDouble(uint8_t *buffer,int16_t length);//Converts the string to a signed integer (string expressed in decimal number with signed)
+int32_t stringDecToInt(uint8_t *buffer,int16_t length);//Converts the string to a signed integer (the string expresses an integer in signed decimal format)
+int32_t stringHexToInt(uint8_t *buffer,int16_t length);//Converts the string to a unsigned integer (the string expresses an integer in HEX format)
+double stringDecToDouble(uint8_t *buffer,int16_t length);//Converts the string to a double (the string expresses a number with a decimal point)
 ```
 
