@@ -27,7 +27,7 @@ struct port_str * port_write=ports;
  * Return:
  * 				none
  * Notes:
- * 				hem
+ *
  */
 void EU_init(UART_HandleTypeDef *huart){
 	(*port_selected).port=huart;
@@ -69,7 +69,8 @@ uint8_t *EU_getLine(uint16_t *size){
 	if(EU_lineAvailable()){
 		(*size)=(*port_selected).sizeLine[(*port_selected).lastLine];
 		uint8_t *buff=((*port_selected).buffer[(*port_selected).lastLine]);
-		(*port_selected).lastLine=(*port_selected).actualLine;
+		(*port_selected).lastLine++;
+		if((*port_selected).lastLine>=BUFFER_LINES)(*port_selected).lastLine=0;
 		return(buff);
 	}
 	return(0);
@@ -88,7 +89,7 @@ uint16_t EU_getNWords(){
 	uint16_t indice=0;
 	uint16_t NWords=0;
 	(*port_selected).initActualWordsInLine[(*port_selected).lastLine]=0;
-	while((*port_selected).buffer[(*port_selected).lastLine][indice]>' '){
+	while((*port_selected).buffer[(*port_selected).lastLine][indice] > ' ' && indice < (*port_selected).sizeLine[(*port_selected).lastLine]){
 		NWords++;
 		while((*port_selected).buffer[(*port_selected).lastLine][indice++]>' ');
 	}
@@ -426,3 +427,5 @@ uint16_t charToValue_DEC_HEX(uint8_t val){
 	if(val>='a'&&val<='f') return(val-'a'+10);
 	return(0);
 }
+
+/*** end of file ***/
